@@ -6,6 +6,7 @@ cd $main_dir
 
 mkdir -p ./data/simulated_incidence
 mkdir -p ./data/epidemia
+mkdir -p ./plots
 
 # Simulate
 # Comment out simulation bit if simulation script has already been run

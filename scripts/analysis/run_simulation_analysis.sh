@@ -6,7 +6,7 @@ cd $main_dir
 
 mkdir -p ./data/simulated_incidence
 mkdir -p ./data/inference_on_simulated_incidence
-mkdir -p ./plots/simulations
+mkdir -p ./plots
 
 # Simulate
 echo "Started simulating..."

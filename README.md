@@ -10,7 +10,7 @@ For ease of use, downloaded the entore repo and create an RScript project in the
 3. Run corresponding R scripts in scripts/result_aggregation
 4. Plot corresponding figures with R scripts in scripts/plotting
 
-### Note for step 2.
+Note for step 2.
 Running 'run_simulation_analysis.sh' or 'run_simulation_analysis_time_varying_delays.sh'
 can take a while. To speed things up,
 1. Comment out the simulation part once it has been run once.
