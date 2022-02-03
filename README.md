@@ -1,5 +1,8 @@
 # README
 
+The code in this repository allows the replication of the validation and analysis presented in Scire et al. 2022.
+For ease of use, downloaded the entore repo and create an RScript project in the root folder.
+
 ## Instructions for estimateR validation
 
 1. In RStudio, create a project (from existing files) in the same folder as this README.md file
