@@ -55,24 +55,47 @@ allData %>%
 plotData <- allData %>% 
   rename(Software=version)
 
+
+# Add epinow2
+
+epinow2_r <- readRDS(here::here("data","empirical_data_results","epinow2_r.rds"))
+
+plotData <- bind_rows(plotData,
+          epinow2_r %>%
+            filter(type == "estimate") %>%
+            filter(date < estimation_date - 21, date > first_date + 21) %>% 
+            group_by(country, date) %>% 
+            summarize(across(where(is.numeric), ~median(., na.rm = T)), .groups = "drop") %>% 
+            filter(country == "Switzerland", date <= "2021-10-09") %>% 
+            select(date, Re_estimate = median, CI_down_Re_estimate = lower_90, CI_up_Re_estimate = upper_90) %>% 
+            mutate(region = "CH", Software = "EpiNow2", .after = date)
+)
+
+
+# Factor
 plotData$Software <- recode_factor(plotData$Software,
+                                   new="estimateR",
                                    server="Huisman et al. pipeline",
-                                   new="estimateR")
+                                   EpiNow2="EpiNow2")
+
 
 
 colour_palette <- viridis(7)
 p1 <- plotData %>%
   filter(region == "CH") %>%
   ggplot(aes(x = date, y = Re_estimate)) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
   geom_line(aes(colour = Software), lwd =  1.1) +
   geom_ribbon(aes(x = date, ymax = CI_up_Re_estimate, ymin = CI_down_Re_estimate, fill = Software),
               alpha = 0.25, colour = NA) +
-  geom_text(x=as.Date("2021-01-01"), y=2.2, label="Switzerland",size = 6) +
-  scale_colour_manual(values = colour_palette[c(1,5)], aesthetics = c("colour", "fill")) +
-  scale_x_date(date_breaks = "4 months",
+  geom_text(x=as.Date("2020-07-14"), y=2.2, label="Switzerland",size = 6, hjust = 0) +
+  scale_colour_manual(values = colour_palette[c(1,5,3)], aesthetics = c("colour", "fill")) +
+  scale_x_date(date_breaks = "3 months",
                date_labels = "%b-%d\n%Y",
-               limits = c(as.Date("2020-03-01"), as.Date("2021-10-10"))) +
-  coord_cartesian(ylim = c(0, 3.2)) +
+               limits = c(as.Date("2020-07-01"), as.Date("2021-09-14")),
+               expand = c(0,0)) +
+  coord_cartesian(ylim = c(0.4, 2.4)) +
+  scale_y_continuous(expand = c(0,NA)) +
   xlab("") +
   theme_bw() +
   ylab("Reproductive number") +
@@ -80,14 +103,14 @@ p1 <- plotData %>%
         axis.text = element_text(size = 13),
         legend.text = element_text(size = 13),
         legend.title = element_blank(),
-        legend.position = c(.6, .85))
+        legend.position = c(.7, .85),
+        legend.background = element_blank())
         # plot.margin = margin(15, 15, 15, 15))
+p1
 
 # Make subplots for other countries
 EMPIRICAL_DATA_DIR <- here::here("data", "empirical_data")
 RESULTS_DIR <- here::here("data", "empirical_data_results")
-
-
 
 make_subplot <- function(plot_number) {
   # AUS BEL CHL GBR IND JPN USA ZAF
@@ -96,7 +119,7 @@ make_subplot <- function(plot_number) {
                      "Belgium",
                      "Chile",
                      "United Kingdom",
-                     "India",
+                     "Indonesia",
                      "Japan",
                      "United States of America",
                      "South Africa")
@@ -116,14 +139,28 @@ make_subplot <- function(plot_number) {
   plotData <- result_data %>% 
     rename(Software=implementation)
   
+  plotData <- bind_rows(plotData,
+                        epinow2_r %>%
+                          filter(type == "estimate") %>%
+                          filter(date < estimation_date - 21, date > first_date + 21) %>% 
+                          group_by(country, date) %>% 
+                          summarize(across(where(is.numeric), ~median(., na.rm = T)), .groups = "drop") %>% 
+                          mutate(country = ifelse(country=="United States","United States of America",country)) %>% 
+                          filter(country == country_names[plot_number], date <= "2021-10-09") %>% 
+                          select(date, Re_estimate = median, CI_down_Re_estimate = lower_90, CI_up_Re_estimate = upper_90) %>% 
+                          mutate(region = "CH", Software = "EpiNow2", .after = date)
+  )
+  
   plotData$Software <- recode_factor(plotData$Software,
-                                     server="Huisman et al. pipeline",
-                                     new="estimateR")
+                                     estimateR="estimateR",
+                                     pipeline="Huisman et al. pipeline",
+                                     EpiNow2="EpiNow2")
   
   colour_palette <- viridis(7)
   y_axis_label <- if_else(plot_number %in% c(3,6), "Reproductive number", "")
   p1 <- ggplot(data = plotData,
                mapping = aes(x = date)) +
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black") +
     geom_line(aes(y = Re_estimate,
                   colour = Software,
                   group = Software),
@@ -132,13 +169,15 @@ make_subplot <- function(plot_number) {
                     ymin = CI_down_Re_estimate,
                     group = Software,
                     fill = Software), alpha = 0.25, colour = NA) +
-    geom_text(x=as.Date("2021-01-01"), y=2.2, label=country_names[plot_number],size = 6) +
+    geom_text(x=as.Date("2020-07-14"), y=2.2, label=country_names[plot_number], size = 6, hjust = 0) +
     scale_x_date(date_breaks = "3 months",
                  date_labels = "%b-%d\n%Y",
-                 limits = c(as.Date("2020-03-01"), as.Date("2021-10-10"))) +
-    scale_colour_manual(values = colour_palette[c(1,5)], aesthetics = c("colour", "fill")) +
+                 limits = c(as.Date("2020-07-01"), as.Date("2021-09-14")),
+                 expand = c(0,0)) +
+    scale_colour_manual(values = colour_palette[c(1,5,3)], aesthetics = c("colour", "fill")) +
     ylab(y_axis_label) +
-    coord_cartesian(ylim = c(0, 3.2)) +
+    coord_cartesian(ylim = c(0.4, 2.4)) +
+    scale_y_continuous(expand = c(0,NA)) +
     xlab("") +
     theme_bw() +
     theme(axis.title = element_text(size = 14),
@@ -164,4 +203,5 @@ plot_grid(plotlist = all_subplots,
           label_size = 20)
 
 
-ggsave(filename = file.path(PLOT_DIR, "fig_empirical_comparison.png"), width = 40, height = 30, units = "cm", dpi = 320)
+ggsave(filename = file.path(PLOT_DIR, "Figure_empirical_comparison.png"), width = 40, height = 30, units = "cm", dpi = 320)
+
