@@ -49,6 +49,13 @@ theme_set(theme_bw() +
               legend.text = element_text(size = 24)
             ))
 
+main_figure_data <- main_figure_data %>% mutate(Rt_type = recode(Rt_type,
+  `Abrupt decrease` = "(1) Abrupt\n    decrease",
+  `Abrupt increase` = "(2) Abrupt\n    increase",
+  `Constant` = "(3) Constant",
+  `Linear decrease` = "(4) Linear\n    decrease",
+  `Linear increase` = "(5) Linear\n    increase"))
+
 # Build figure panel by panel
 p1 <- ggplot(main_figure_data, aes(x = idx)) +
   facet_grid(Rt_type ~ .) +
@@ -66,19 +73,21 @@ p1 <- ggplot(main_figure_data, aes(x = idx)) +
   scale_discrete_manual(values = colour_palette[c(3,5)],
                         aesthetics = c("colour", "fill"),
                         name = "Noise model:") +
-  ylab("Reproductive number") +
+  ggtitle("(A) Reproductive number") +
   xlab("Time") +
   coord_cartesian(ylim = c(0, 3),
                   xlim = c(0, 150)) +
   theme(strip.text = element_blank(),
-        plot.margin = margin(12, 5, 0, 20))
+        plot.margin = margin(17, 5, 0, 20),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 p2 <- ggplot(main_figure_data, aes(x = idx)) +
   facet_grid(Rt_type ~ .) +
   geom_line(aes(y = coverage,
                 group = noise_type, 
                 colour = noise_type), lwd =  1.3) +
-  ylab("Coverage") +
+  ggtitle("(B) Coverage") +
   xlab("Time") +
   scale_discrete_manual(values = colour_palette[c(3,5)],
                         aesthetics = c("colour", "fill"),
@@ -86,14 +95,16 @@ p2 <- ggplot(main_figure_data, aes(x = idx)) +
   coord_cartesian(ylim = c(0, 1),
                   xlim = c(0, 150)) +
   theme(strip.text = element_blank(),
-        plot.margin =margin(17, 5, 0, 5))
+        plot.margin =margin(17, 5, 0, 5),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 p3 <- ggplot(main_figure_data, aes(x = idx)) +
-  facet_grid(Rt_type ~ ., labeller = label_wrap_gen(width = 10)) +
+  facet_grid(Rt_type ~ .) + #labeller = label_wrap_gen(width = 15)
   geom_line(aes(y = rmse,
                 group = noise_type,
                 colour = noise_type), lwd =  1.3) +
-  ylab("RMSE") +
+  ggtitle("(C) RMSE") +
   xlab("Time") +
   coord_cartesian(ylim = c(0, 0.7),
                   xlim = c(0, 150)) +
@@ -103,6 +114,8 @@ p3 <- ggplot(main_figure_data, aes(x = idx)) +
   theme(strip.background = element_rect(colour="black",
                                         fill="white"),
         strip.text = element_text(size = 24),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24),
         plot.margin = margin(17, 5, 0, 5))
 
 prow <- plot_grid(p1 + theme(legend.position="none"), 

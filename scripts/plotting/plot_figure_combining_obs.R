@@ -37,6 +37,14 @@ main_figure_data <- filter(all_figure_data,
                            noise_type == "autocorrelated",
                            bootstrapping_type == "bootstrapped")
 
+main_figure_data <- main_figure_data %>% mutate(Rt_type = recode(Rt_type,
+                                                                 `Abrupt decrease` = "(1) Abrupt\n    decrease",
+                                                                 `Abrupt increase` = "(2) Abrupt\n    increase",
+                                                                 `Constant` = "(3) Constant",
+                                                                 `Linear decrease` = "(4) Linear\n    decrease",
+                                                                 `Linear increase` = "(5) Linear\n    increase"))
+
+
 colour_palette <- viridis(7)
 
 theme_set(theme_bw() +
@@ -51,7 +59,7 @@ theme_set(theme_bw() +
 
 p1 <- ggplot(main_figure_data, aes(x = idx)) +
   # facet_grid(Rt_type ~ simulation_type, labeller = label_wrap_gen(width = 12)) + 
-  facet_grid(Rt_type ~ ., labeller = label_wrap_gen(width = 12)) + 
+  facet_grid(Rt_type ~ .) + 
   geom_line(aes(y = ref_Rt), lwd =  1, colour = "black") +
   geom_line(aes(y = median_Re_estimate,
                 group = simulation_type, 
@@ -62,25 +70,27 @@ p1 <- ggplot(main_figure_data, aes(x = idx)) +
                   group = simulation_type,
                   fill = simulation_type),
               alpha = 0.10) +
-  ylab("Reproductive number") +
+  ggtitle("(A) Reproductive number") +
   xlab("Time") +
   coord_cartesian(ylim = c(0, 3),
                   xlim = c(0, 150)) +
   scale_colour_viridis_d(name = "Observations:", option = "B", begin = 0.15, end= 0.95) +
   scale_fill_viridis_d(name = "Observations:", option = "B",  begin = 0.15, end= 0.95) +
-  theme(strip.background = element_rect(colour="black",
+  theme(strip.text.y = element_blank(), strip.background = element_rect(colour="black",
                                   fill="white"),
-        plot.margin = margin(5, 5, 0, 15))
+        plot.margin = margin(5, 5, 0, 15),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 
 
 p2 <- ggplot(main_figure_data, aes(x = idx)) +
-  facet_grid(Rt_type ~ ., labeller = label_wrap_gen(width = 12)) + 
+  facet_grid(Rt_type ~ .) + 
   geom_line(aes(y = coverage,
                 group = simulation_type, 
                 colour = simulation_type), 
             lwd =  1.2) +
-  ylab("Coverage") +
+  ggtitle("(B) Coverage") +
   xlab("Time") +
   scale_colour_viridis_d(option = "B", begin = 0.15, end= 0.95) +
   coord_cartesian(ylim = c(0, 1),
@@ -88,22 +98,26 @@ p2 <- ggplot(main_figure_data, aes(x = idx)) +
   theme(strip.text.y = element_blank(),
         strip.background.x = element_rect(colour="black",
                                           fill="white"),
-        plot.margin = margin(5, 10, 0, 15))
+        plot.margin = margin(5, 10, 0, 15),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 p3 <- ggplot(main_figure_data, aes(x = idx)) +
-  facet_grid(Rt_type ~ ., labeller = label_wrap_gen(width = 12)) + 
+  facet_grid(Rt_type ~ .) + 
   geom_line(aes(y = rmse,
                 group = simulation_type, 
                 colour = simulation_type), 
             lwd =  1.2) +
-  ylab("RMSE") +
+  ggtitle("(C) RMSE") +
   xlab("Time") +
   scale_colour_viridis_d(option = "B", begin = 0.15, end= 0.95) +
   coord_cartesian(ylim = c(0, 0.7),
                   xlim = c(0, 150)) +
   theme(strip.background = element_rect(colour="black",
                                         fill="white"),
-        plot.margin = margin(5, 5, 0, 5))
+        plot.margin = margin(5, 5, 0, 5),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 prow <- plot_grid(p1 + theme(legend.position="none"), 
                   p2 + theme(legend.position="none"), 
@@ -112,7 +126,7 @@ prow <- plot_grid(p1 + theme(legend.position="none"),
 
 legend_b <- get_legend(p1 + theme(legend.position="bottom"))
 
-p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .04))
+p <- plot_grid(prow, legend_b, ncol = 1, rel_heights = c(1, .04))
 
 p
 

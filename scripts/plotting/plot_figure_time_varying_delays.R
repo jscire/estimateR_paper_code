@@ -38,6 +38,14 @@ main_figure_data <- filter(all_figure_data,
                            noise_type == "autocorrelated",
                            bootstrapping_type == "bootstrapped")
 
+main_figure_data <- main_figure_data %>% mutate(Rt_type = recode(Rt_type,
+                                                                 `Abrupt decrease` = "(1) Abrupt\n    decrease",
+                                                                 `Abrupt increase` = "(2) Abrupt\n    increase",
+                                                                 `Constant` = "(3) Constant",
+                                                                 `Linear decrease` = "(4) Linear\n    decrease",
+                                                                 `Linear increase` = "(5) Linear\n    increase"))
+
+
 ### Build main figure
 colour_palette <- viridis(7)
 
@@ -66,7 +74,7 @@ p1 <- ggplot(filter(main_figure_data, delay_change_type == "long_to_short"), aes
         plot.margin = margin(5, 10, 10, 30))
 
 p2 <- ggplot(filter(main_figure_data, delay_change_type == "short_to_long"), aes(x = idx)) +
-  facet_grid(Rt_type ~ analysis_delay, labeller = label_wrap_gen(width = 14)) + 
+  facet_grid(Rt_type ~ analysis_delay) + 
   geom_line(aes(y = ref_Rt), lwd =  1.1,  colour = "black") +
   geom_line(aes(y = median_Re_estimate), lwd =  1.1,  colour = colour_palette[5]) +
   geom_ribbon(aes(x = idx, ymax = median_CI_up_Re_estimate, ymin = median_CI_down_Re_estimate),
@@ -85,7 +93,7 @@ plot_grid(p1, p2,
           labels = c('A', 'B'), 
           label_size = 45)
 
-ggsave(filename = file.path(PLOT_DIR, "Figure_time_varying_delays_main.png"), dpi = 320, width = 50, height = 24, units = "cm")
+ggsave(filename = file.path(PLOT_DIR, "Figure_time_varying_delays_main.png"), dpi = 320, width = 50, height = 40, units = "cm")
 
 
 ### Build SI figure (coverage and RMSE)
@@ -103,7 +111,7 @@ p1 <- ggplot(filter(main_figure_data, delay_change_type == "long_to_short"), aes
         plot.margin = margin(5, 5, 5, 30))
 
 p2 <- ggplot(filter(main_figure_data, delay_change_type == "short_to_long"), aes(x = idx)) +
-  facet_grid(Rt_type ~ analysis_delay, labeller = label_wrap_gen(width = 14)) +
+  facet_grid(Rt_type ~ analysis_delay) +
   geom_line(aes(y = coverage), lwd =  1.1,  colour = "black") +
   ylab("Coverage") +
   xlab("") +
@@ -145,4 +153,4 @@ pSI <- plot_grid(p1, p2, p3, p4,
           labels = c("A", "B", "C", "D"),
           label_size = 45,
           nrow=2)
-ggsave(plot = pSI, filename = file.path(PLOT_DIR, "Figure_time_varying_delays_SI.png"), dpi = 320, width = 50, height = 45, units = "cm")
+ggsave(plot = pSI, filename = file.path(PLOT_DIR, "Figure_time_varying_delays_SI.png"), dpi = 320, width = 50, height = 65, units = "cm")

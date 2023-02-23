@@ -36,6 +36,13 @@ main_figure_data$bootstrapping_type <- recode_factor(main_figure_data$bootstrapp
                                              bootstrapped = "No smoothing",
                                              SI_bootstrapped = "Smoothing")
 
+main_figure_data <- main_figure_data %>% mutate(Rt_type = recode(Rt_type,
+                                                                 `Abrupt decrease` = "(1) Abrupt\n    decrease",
+                                                                 `Abrupt increase` = "(2) Abrupt\n    increase",
+                                                                 `Constant` = "(3) Constant",
+                                                                 `Linear decrease` = "(4) Linear\n    decrease",
+                                                                 `Linear increase` = "(5) Linear\n    increase"))
+
 # Noisy figure (Main text)
 colour_palette <- viridis(7)
 
@@ -52,7 +59,7 @@ p1 <- ggplot(main_figure_data, aes(x = idx)) +
   geom_line(aes(y = median_Re_estimate, colour = bootstrapping_type, group = bootstrapping_type), lwd =  1.1) +
   geom_ribbon(aes(x = idx, ymax = median_CI_up_Re_estimate, ymin = median_CI_down_Re_estimate, fill = bootstrapping_type, group = bootstrapping_type),
               alpha = 0.25) +
-  ylab("Reproductive number") +
+  ggtitle("(A) Reproductive number") +
   xlab("Time") +
   scale_discrete_manual(values = colour_palette[c(3,1)],
                         aesthetics = c("colour", "fill"),
@@ -60,12 +67,14 @@ p1 <- ggplot(main_figure_data, aes(x = idx)) +
   coord_cartesian(ylim = c(0, 3),
                   xlim = c(0, 150)) +
   theme(strip.text = element_blank(),
-        plot.margin = margin(12, 5, 10, 25))
+        plot.margin =margin(17, 5, 0, 5),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 p2 <- ggplot(main_figure_data, aes(x = idx)) +
   facet_grid(Rt_type ~ .) +
   geom_line(aes(y = coverage, colour = bootstrapping_type, group = bootstrapping_type), lwd =  1.1) +
-  ylab("Coverage") +
+  ggtitle("(B) Coverage") +
   xlab("Time") +
   scale_discrete_manual(values = colour_palette[c(3,1)],
                         aesthetics = c("colour", "fill"),
@@ -73,12 +82,14 @@ p2 <- ggplot(main_figure_data, aes(x = idx)) +
   coord_cartesian(ylim = c(0, 1),
                   xlim = c(0, 150)) +
   theme(strip.text = element_blank(),
-        plot.margin =margin(12, 5, 10, 5))
+        plot.margin = margin(17, 5, 0, 20),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 p3 <- ggplot(main_figure_data, aes(x = idx)) +
-  facet_grid(Rt_type ~ ., labeller = label_wrap_gen(width = 10)) +
+  facet_grid(Rt_type ~ .) +
   geom_line(aes(y = rmse, colour = bootstrapping_type, group = bootstrapping_type), lwd =  1.1) +
-  ylab("RMSE") +
+  ggtitle("(C) RMSE") +
   xlab("Time") +
   scale_discrete_manual(values = colour_palette[c(3,1)],
                         aesthetics = c("colour", "fill"),
@@ -88,7 +99,9 @@ p3 <- ggplot(main_figure_data, aes(x = idx)) +
   theme(strip.background = element_rect(colour="black",
                                         fill="white"),
         strip.text = element_text(size = 24),
-        plot.margin = margin(12, 5, 10, 5))
+        plot.margin =margin(17, 5, 0, 5),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 24))
 
 legend_b <- get_legend(p1 + theme(legend.position="bottom"))
 
@@ -101,5 +114,5 @@ p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .04))
 
 p
 
-ggsave(filename = file.path(PLOT_DIR, "SI_Figure_basic_validation.png"), dpi = 320, height = 25, width = 50, units="cm")
+ggsave(filename = file.path(PLOT_DIR, "Figure_basic_validation_SI.png"), dpi = 320, height = 40, width = 50, units="cm")
 
