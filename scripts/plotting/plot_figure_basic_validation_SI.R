@@ -29,7 +29,12 @@ summarized_results <- read_csv(file = file.path(INFERENCE_DIR, "summary_inferenc
 all_figure_data <- filter(summarized_results, simulation_type == "Case confirmations")
 main_figure_data <- filter(all_figure_data, 
                            noise_type == "noiseless",
-                           bootstrapping_type == "SI_bootstrapped")
+                           bootstrapping_type %in% c("bootstrapped","SI_bootstrapped"))
+
+# Recode factors for better plotting
+main_figure_data$bootstrapping_type <- recode_factor(main_figure_data$bootstrapping_type,
+                                             bootstrapped = "No smoothing",
+                                             SI_bootstrapped = "Smoothing")
 
 # Noisy figure (Main text)
 colour_palette <- viridis(7)
@@ -44,11 +49,14 @@ theme_set(theme_bw() +
 p1 <- ggplot(main_figure_data, aes(x = idx)) +
   facet_grid(Rt_type ~ .) +
   geom_line(aes(y = ref_Rt), lwd =  1.1, colour = "black") +
-  geom_line(aes(y = median_Re_estimate), lwd =  1.1,  colour = colour_palette[3]) +
-  geom_ribbon(aes(x = idx, ymax = median_CI_up_Re_estimate, ymin = median_CI_down_Re_estimate),
-              alpha = 0.25,  fill = colour_palette[3]) +
+  geom_line(aes(y = median_Re_estimate, colour = bootstrapping_type, group = bootstrapping_type), lwd =  1.1) +
+  geom_ribbon(aes(x = idx, ymax = median_CI_up_Re_estimate, ymin = median_CI_down_Re_estimate, fill = bootstrapping_type, group = bootstrapping_type),
+              alpha = 0.25) +
   ylab("Reproductive number") +
   xlab("Time") +
+  scale_discrete_manual(values = colour_palette[c(3,1)],
+                        aesthetics = c("colour", "fill"),
+                        name = "Smoothing:") +
   coord_cartesian(ylim = c(0, 3),
                   xlim = c(0, 150)) +
   theme(strip.text = element_blank(),
@@ -56,9 +64,12 @@ p1 <- ggplot(main_figure_data, aes(x = idx)) +
 
 p2 <- ggplot(main_figure_data, aes(x = idx)) +
   facet_grid(Rt_type ~ .) +
-  geom_line(aes(y = coverage), lwd =  1.1,  colour = colour_palette[3]) +
+  geom_line(aes(y = coverage, colour = bootstrapping_type, group = bootstrapping_type), lwd =  1.1) +
   ylab("Coverage") +
   xlab("Time") +
+  scale_discrete_manual(values = colour_palette[c(3,1)],
+                        aesthetics = c("colour", "fill"),
+                        name = "Smoothing:") +
   coord_cartesian(ylim = c(0, 1),
                   xlim = c(0, 150)) +
   theme(strip.text = element_blank(),
@@ -66,9 +77,12 @@ p2 <- ggplot(main_figure_data, aes(x = idx)) +
 
 p3 <- ggplot(main_figure_data, aes(x = idx)) +
   facet_grid(Rt_type ~ ., labeller = label_wrap_gen(width = 10)) +
-  geom_line(aes(y = rmse), lwd =  1.1,  colour = colour_palette[3]) +
+  geom_line(aes(y = rmse, colour = bootstrapping_type, group = bootstrapping_type), lwd =  1.1) +
   ylab("RMSE") +
   xlab("Time") +
+  scale_discrete_manual(values = colour_palette[c(3,1)],
+                        aesthetics = c("colour", "fill"),
+                        name = "Smoothing:") +
   coord_cartesian(ylim = c(0, 0.7),
                   xlim = c(0, 150)) +
   theme(strip.background = element_rect(colour="black",
@@ -76,11 +90,16 @@ p3 <- ggplot(main_figure_data, aes(x = idx)) +
         strip.text = element_text(size = 24),
         plot.margin = margin(12, 5, 10, 5))
 
-pB <- plot_grid(p1, p2, p3,
-          nrow=1)
+legend_b <- get_legend(p1 + theme(legend.position="bottom"))
 
-plot_grid(p1, p2, p3,
-          nrow=1)
+prow <- plot_grid(p1 + theme(legend.position="none"), 
+                  p2 + theme(legend.position="none"), 
+                  p3 + theme(legend.position="none"),
+                  nrow=1)
+
+p <- plot_grid( prow, legend_b, ncol = 1, rel_heights = c(1, .04))
+
+p
 
 ggsave(filename = file.path(PLOT_DIR, "SI_Figure_basic_validation.png"), dpi = 320, height = 25, width = 50, units="cm")
 
