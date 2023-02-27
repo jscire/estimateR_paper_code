@@ -36,7 +36,7 @@ can be reduced.
     or (better) by running: `install_github("covid-19-Re/estimateR")` in RStudio.
     Restart R to apply changes.
 
-## Comparison of estimateR with epidemia and EpiNow2
+### Comparison of estimateR with epidemia and EpiNow2
 1. Run basic estimateR validation if not done already
     - Run scripts/analysis/run_simulation_analysis.sh
     - Run scripts/result_aggregation/compare_inference_to_original.R
