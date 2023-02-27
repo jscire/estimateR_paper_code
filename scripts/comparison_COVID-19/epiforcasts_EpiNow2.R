@@ -3,7 +3,7 @@ library(dplyr)
 library(lubridate)
 library(ggplot2)
 
-here::i_am("scripts/comparison_with_other_packages/epiNow2_Covid_epiforcasts.R")
+here::i_am("scripts/comparison_COVID-19/epiforcasts_EpiNow2.R")
 
 # Scrape national R estimates from epiforcasts
 source("https://raw.githubusercontent.com/brshallo/save-versions-from-git/main/scripts/save_file_versions_from_git.R")
