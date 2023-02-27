@@ -1,0 +1,140 @@
+---
+title: "R estimation with EpiNow2 and estimateR for dengue fever in Rio de Janeiro, Brazil"
+---
+
+```{r}
+here::i_am("scripts/comparison_dengue/dengue_estimation.Rmd")
+
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+library(EpiNow2)
+library(estimateR)
+```
+
+## Prepare data and parameters
+
+```{r}
+dengue <- readRDS(here::here("data","empirical_data","preprocessed.rds"))
+```
+
+### Reporting delay
+```{r}
+dengue_delay <- readRDS(here::here("data","empirical_data_results","comparison_dengue","delay_dists.rds"))
+# Pass to EpiNow2
+reporting_delay <- list(mean = dengue_delay[["2012-2013"]]["meanlog"], sd = dengue_delay[["2012-2013"]]["sdlog"], dist = "lognormal", max = 100, fixed = T) 
+# Pass to estimateR
+distribution_onset_to_confirmation <- list(name = "lnorm", meanlog = dengue_delay[["2012-2013"]]["meanlog"], sdlog = dengue_delay[["2012-2013"]]["sdlog"])
+```
+
+### Incubation period
+Intrinsic incubation period based on Chan, Miranda, and Michael A. Johansson. “The Incubation Periods of Dengue Viruses.” PLOS ONE 7, no. 11 (November 30, 2012): e50972. https://doi.org/10.1371/journal.pone.0050972.
+This is a lognormal distribution with mean 5.9, and standard deviation such that 2.5% quantile is at 3.4 and 97.5% quantile is at 10
+```{r}
+mean_incubation = 5.9
+sd_incubation = 1.6
+# Pass to EpiNow2
+incubation_delay <- list(mean = convert_to_logmean(mean_incubation, sd_incubation), sd = convert_to_logsd(mean_incubation, sd_incubation), dist = "lognormal", max = 15, fixed = T)
+# Pass to estimateR
+distribution_incubation <- list(name = "lnorm", meanlog = convert_to_logmean(mean_incubation, sd_incubation), sdlog = convert_to_logsd(mean_incubation, sd_incubation))
+```
+
+### Generation interval
+Based on Siraj, Amir S., Rachel J. Oidtman, John H. Huber, Moritz U. G. Kraemer, Oliver J. Brady, Michael A. Johansson, and T. Alex Perkins. “Temperature Modulates Dengue Virus Epidemic Growth Rates through Its Effects on Reproduction Numbers and Generation Intervals.” PLOS Neglected Tropical Diseases 11, no. 7 (July 19, 2017): e0005797. https://doi.org/10.1371/journal.pntd.0005797.
+This is a gamma distribution which optimizes the MSE to the mixture distribution given in Siraj et al. for a constant temperature of 27.2°C
+```{r}
+mean_serial_interval <- 23
+std_serial_interval <- 8.5
+generation_time <- list(mean = mean_serial_interval, sd = std_serial_interval, dist="gamma", max = 15, fixed = T)
+```
+
+### Subsetting the data
+```{r}
+dengue_subset <- dengue %>% filter(date >= "2011-11-01", date < "2013-11-01")
+dengue_subset %>% ggplot(aes(x=date,y=confirm)) + geom_col() + scale_x_date(expand=c(0,0)) + theme_bw()
+```
+
+## Fit EpiNow2
+```{r}
+fit <- epinow(reported_cases = dengue_subset,
+                      generation_time = generation_time_opts(generation_time),
+                      delays = delay_opts(incubation_delay, reporting_delay, fixed = T),
+                      horizon = 0,
+                      return_output = TRUE,
+                      target_folder=  here::here("data", "empirical_data_results", "comparison_dengue", "epinow2", "output_data"),
+                      logs =  here::here("data", "empirical_data_results", "comparison_dengue", "epinow2", "log_data"),
+                      stan = stan_opts(cores = 4,
+                                       control = list(adapt_delta = 0.96,
+                                                      max_treedepth = 16)),
+                      rt = rt_opts(gp_on = "R0"), 
+                      obs = obs_opts(family = "negbin",
+                                     week_effect = TRUE),
+                      CrIs = c(0.5, 0.95)
+              )
+```
+
+```{r}
+epinow2_R_result <- readRDS(here::here("data", "empirical_data_results", "comparison_dengue", "epinow2", "output_data", "latest", "summarised_estimates.rds"))
+```
+
+## Fit estimateR
+```{r}
+Re_estimates <- try(get_block_bootstrapped_estimate(
+    incidence_data = dengue_subset %>% mutate(confirm = ifelse(confirm==0,0.1,confirm)) %>% pull(confirm),
+    N_bootstrap_replicates = 100,
+    smoothing_method = "LOESS",
+    data_points_incl = 7*10,
+    initial_Re_estimate_window = 7*8,
+    delay = list(distribution_incubation,  distribution_onset_to_confirmation),
+    estimation_window = 3,
+    minimum_cumul_incidence = 200,
+    mean_serial_interval = mean_serial_interval,
+    std_serial_interval = std_serial_interval,
+    ref_date = min(dengue_subset$date),
+    time_step = "day",
+    combine_bootstrap_and_estimation_uncertainties = TRUE,
+    output_Re_only = FALSE
+  ), silent = TRUE)
+```
+
+
+## Plot results
+
+```{r}
+dengue_R_all <- bind_rows(
+Re_estimates %>% select(date, R = Re_estimate, lower = CI_down_Re_estimate, upper=CI_up_Re_estimate ) %>% mutate(Software = "estimateR"),
+epinow2_R_result %>% filter(variable=="R") %>% select(date, R = median, lower = lower_95, upper = upper_95) %>% mutate(Software = "EpiNow2")
+) %>%
+  mutate(Software=factor(Software, ordered = T, levels = c("estimateR","EpiNow2")))
+```
+
+```{r}
+colour_palette <- viridis(7)
+
+ggplot(dengue_R_all, aes(x=date)) +
+  geom_hline(yintercept=1, linetype = "dashed") +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Software), alpha = 0.25) +
+  geom_line(aes(y=R, color = Software), lwd = 1.1) +
+  scale_colour_manual(values = colour_palette[c(1,3)], aesthetics = c("colour", "fill")) +
+  scale_x_date(date_breaks = "3 months",
+               date_labels = "%b-%d\n%Y",
+               limits = c(as.Date("2011-12-01"), as.Date("2013-10-01")),
+               expand = c(0,0)) +
+  coord_cartesian(ylim = c(0,3)) +
+  theme_bw() +
+  xlab("") +
+  ylab("Reproductive number") +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 13),
+        legend.text = element_text(size = 13),
+        legend.title = element_blank(),
+        legend.position = c(.9, .9),
+        legend.background = element_blank())
+
+ggsave(here::here("plots","Fig_comparison_dengue.png"), width = 40, height = 15, units = "cm", dpi = 320)
+```
+
+
+
